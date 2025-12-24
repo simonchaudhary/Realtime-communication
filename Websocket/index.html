@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>WebSocket Test</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    input {
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    button {
+      background-color: #4CAF50;
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>WebSocket Test</h1>
+  <section class="flex gap-2">
+    <button onclick="connectServer()">Connect</button>
+    <button onclick="closeMessage()">Close</button>
+
+    <section class="flex gap-2">
+      <input type="text" id="usernameInput" placeholder="Type a username">
+      <button onclick="setUsername()">Set Username</button>
+    </section>
+  </section>
+
+  <h3 id="user"></h3>
+
+  <div id="messages"></div>
+  <section class="flex gap-2">
+    <input type="text" id="messageInput" placeholder="Type a message">
+    <button onclick="sendMessage()">Send</button>
+  </section>
+
+
+
+
+  <script>
+    // Connect to the WebSocket server
+    let ws;
+    let user = {}
+
+    function setUsername() {
+      const input = document.getElementById('usernameInput');
+      const username = input.value.trim();
+
+      if (!username) {
+        alert('Please enter a username!');
+        return;
+      }
+
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        alert('Not connected! Click Connect first.');
+        return;
+      }
+
+      user.username = username;
+
+      // Send join message to server
+      ws.send(JSON.stringify({
+        type: "join",
+        username: username
+      }));
+
+      // Update UI
+      const userDiv = document.getElementById('user');
+      userDiv.textContent = 'User: ' + username;
+      userDiv.style.color = 'green';
+
+      input.value = '';
+    }
+
+    // Function to send a message
+    function sendMessage() {
+      const input = document.getElementById('messageInput');
+      const message = input.value.trim();
+
+      if (!message) {
+        return; // Don't send empty messages
+      }
+
+      console.log("readyState:", ws.readyState);
+      console.log("bufferedAmount:", ws.bufferedAmount);
+
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: "message",
+          message: message
+        }));
+        input.value = '';  // Clear the input
+      }
+      else {
+        alert('Not connected! Click Connect first.');
+      }
+    }
+
+    function closeMessage() {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+      else {
+        alert('Not connected! Click Connect first.');
+      }
+    }
+
+    function connectServer() {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        alert('Already connected!');
+        return;
+      }
+
+      ws = new WebSocket('ws://localhost:8080');
+
+      ws.onopen = () => {
+        console.log('Connected to server');
+
+        const messagesDiv = document.getElementById('messages');
+        messagesDiv.innerHTML += '<p style="color: green; font-style: italic;">✓ Connected to server</p>';
+      };
+
+      // When we receive a message from server
+      ws.onmessage = (event) => {
+        console.log('Message from server:', event.data);
+
+        const data = JSON.parse(event.data);
+        const messagesDiv = document.getElementById('messages');
+
+        // Handle different message types
+        if (data.type === 'welcome') {
+          // Welcome message
+          messagesDiv.innerHTML += '<p style="color: blue; font-style: italic;">' + data.message + '</p>';
+          user = data.user;
+        }
+        else if (data.type === 'system') {
+          // System notification (join/leave)
+          messagesDiv.innerHTML += '<p style="color: orange; font-style: italic;">📢 ' + data.message + '</p>';
+        }
+        else if (data.type === 'message') {
+          // Chat message from a user
+          const time = new Date(data.timestamp).toLocaleTimeString();
+          messagesDiv.innerHTML += '<p><strong>' + data.username + '</strong> <span style="color: gray; font-size: 12px;">' + time + '</span><br>' + data.message + '</p>';
+        }
+        else if (data.type === 'error') {
+          // Error message
+          messagesDiv.innerHTML += '<p style="color: red;">❌ ' + data.message + '</p>';
+        }
+
+        // Auto-scroll to bottom
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      };
+
+      ws.onclose = () => {
+        console.log('Disconnected from server');
+
+        const messagesDiv = document.getElementById('messages');
+        messagesDiv.innerHTML += '<p style="color: red; font-style: italic;">✗ Disconnected from server</p>';
+
+        const userDiv = document.getElementById('user');
+        userDiv.textContent = 'Disconnected';
+        userDiv.style.color = 'red';
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+    }
+
+    // Send message on Enter key
+    document.addEventListener('DOMContentLoaded', function () {
+      const messageInput = document.getElementById('messageInput');
+      messageInput.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+          sendMessage();
+        }
+      });
+
+      const usernameInput = document.getElementById('usernameInput');
+      usernameInput.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+          setUsername();
+        }
+      });
+    });
+  </script>
+</body>
+
+</html>

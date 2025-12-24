@@ -1,0 +1,35 @@
+{
+  "name": "node",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc index.ts",
+    "check": "tsc --noEmit index.ts",
+    "build:swc": "swc main.tsx -d ./build-swc",
+    "build:esbuild": "esbuild  main.tsx --bundle --format=esm --outdir=build-esbuild",
+    "build:bun": "bun build main.tsx --watch --outdir ./build-bun",
+    "build:rolldown": "rolldown main.tsx --minify --dir ./build-rolldown",
+    "build:vite": "vite build --target module --outDir build-vite"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@swc/cli": "^0.7.9",
+    "@swc/core": "^1.15.7",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.2",
+    "esbuild": "0.27.2",
+    "rolldown": "^1.0.0-beta.55",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.0"
+  },
+  "dependencies": {
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
+  }
+}
